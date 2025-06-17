@@ -9,7 +9,229 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      products: {
+        Row: {
+          category: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          image_url: string | null
+          name: string
+          overall_rating: number | null
+          total_reviews: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          overall_rating?: number | null
+          total_reviews?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          overall_rating?: number | null
+          total_reviews?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      reviews: {
+        Row: {
+          channel_name: string
+          channel_url: string | null
+          cons: string[] | null
+          created_at: string | null
+          duration: number | null
+          id: string
+          processed_at: string | null
+          product_id: string | null
+          pros: string[] | null
+          published_at: string | null
+          rating: number | null
+          sentiment_score: number | null
+          title: string
+          transcript: string | null
+          video_url: string
+          view_count: number | null
+          youtube_video_id: string
+        }
+        Insert: {
+          channel_name: string
+          channel_url?: string | null
+          cons?: string[] | null
+          created_at?: string | null
+          duration?: number | null
+          id?: string
+          processed_at?: string | null
+          product_id?: string | null
+          pros?: string[] | null
+          published_at?: string | null
+          rating?: number | null
+          sentiment_score?: number | null
+          title: string
+          transcript?: string | null
+          video_url: string
+          view_count?: number | null
+          youtube_video_id: string
+        }
+        Update: {
+          channel_name?: string
+          channel_url?: string | null
+          cons?: string[] | null
+          created_at?: string | null
+          duration?: number | null
+          id?: string
+          processed_at?: string | null
+          product_id?: string | null
+          pros?: string[] | null
+          published_at?: string | null
+          rating?: number | null
+          sentiment_score?: number | null
+          title?: string
+          transcript?: string | null
+          video_url?: string
+          view_count?: number | null
+          youtube_video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      summaries: {
+        Row: {
+          confidence_score: number | null
+          cons_summary: string[] | null
+          created_at: string | null
+          id: string
+          key_points: string[] | null
+          overall_sentiment: string | null
+          product_id: string | null
+          pros_summary: string[] | null
+          recommendation: string | null
+          summary_text: string
+          total_videos_analyzed: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          cons_summary?: string[] | null
+          created_at?: string | null
+          id?: string
+          key_points?: string[] | null
+          overall_sentiment?: string | null
+          product_id?: string | null
+          pros_summary?: string[] | null
+          recommendation?: string | null
+          summary_text: string
+          total_videos_analyzed?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          confidence_score?: number | null
+          cons_summary?: string[] | null
+          created_at?: string | null
+          id?: string
+          key_points?: string[] | null
+          overall_sentiment?: string | null
+          product_id?: string | null
+          pros_summary?: string[] | null
+          recommendation?: string | null
+          summary_text?: string
+          total_videos_analyzed?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "summaries_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_searches: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_id: string | null
+          search_query: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          search_query: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          search_query?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_searches_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_searches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          email: string
+          full_name: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email: string
+          full_name?: string | null
+          id: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          email?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

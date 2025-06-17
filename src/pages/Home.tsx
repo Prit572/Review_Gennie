@@ -5,13 +5,26 @@ import { Button } from '@/components/ui/button';
 import { PlayCircle, Star, Users, Zap } from 'lucide-react';
 import SearchBar from '@/components/SearchBar';
 import Header from '@/components/Header';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Home = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleSearch = (query: string) => {
     // Navigate to results page with query
     navigate(`/summary?q=${encodeURIComponent(query)}`);
+  };
+
+  const handleTryFree = () => {
+    if (user) {
+      // User is already signed in, show search functionality
+      const searchElement = document.querySelector('input[type="text"]') as HTMLInputElement;
+      searchElement?.focus();
+    } else {
+      // User needs to sign up
+      navigate('/auth');
+    }
   };
 
   const features = [
@@ -68,8 +81,9 @@ const Home = () => {
               variant="outline" 
               size="lg"
               className="px-8 py-3 text-lg border-2"
+              onClick={handleTryFree}
             >
-              Try Free
+              {user ? 'Start Searching' : 'Try Free'}
             </Button>
           </div>
         </div>
