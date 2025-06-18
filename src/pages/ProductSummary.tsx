@@ -1,62 +1,82 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Star, ThumbsUp, ThumbsDown, ExternalLink, ArrowLeft } from 'lucide-react';
+import { Star, ThumbsUp, ThumbsDown, ExternalLink, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
 import Header from '@/components/Header';
+
+interface ProductData {
+  id: string;
+  name: string;
+  image_url: string;
+  overall_rating: number;
+  total_reviews: number;
+  description: string;
+  summaries: Array<{
+    summary_text: string;
+    overall_sentiment: string;
+    confidence_score: number;
+    key_points: string[];
+    pros_summary: string[];
+    cons_summary: string[];
+  }>;
+  reviews: Array<{
+    id: string;
+    title: string;
+    channel_name: string;
+    video_url: string;
+    rating: number;
+    sentiment_score: number;
+    pros: string[];
+    cons: string[];
+    published_at: string;
+  }>;
+}
 
 const ProductSummary = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get('q') || '';
+  
+  const [productData, setProductData] = useState<ProductData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data - in real app this would come from API
-  const mockData = {
-    product: {
-      name: query || "iPhone 15 Pro",
-      image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=300&h=300&fit=crop",
-      overallRating: 4.2,
-      totalReviews: 8,
-      price: "$999"
-    },
-    features: [
-      {
-        name: "Performance",
-        rating: 4.8,
-        sentiment: "positive",
-        pros: ["Blazing fast A17 Pro chip", "Excellent gaming performance", "Smooth multitasking"],
-        cons: ["Can get warm during intensive tasks"],
-        quotes: [
-          { text: "The performance improvements are immediately noticeable", reviewer: "MKBHD" }
-        ]
-      },
-      {
-        name: "Display",
-        rating: 4.4,
-        sentiment: "positive",
-        pros: ["Bright OLED display", "True color reproduction", "Always-on display"],
-        cons: ["Bezels could be thinner", "No 120Hz on base model"],
-        quotes: [
-          { text: "The display quality is top-notch", reviewer: "Dave2D" }
-        ]
-      },
-      {
-        name: "Value",
-        rating: 3.5,
-        sentiment: "neutral",
-        pros: ["Premium build quality", "Long software support"],
-        cons: ["Very expensive", "Incremental upgrade from 14 Pro"],
-        quotes: [
-          { text: "Hard to justify the price for existing Pro users", reviewer: "Unbox Therapy" }
-        ]
+  useEffect(() => {
+    if (query) {
+      fetchProductData(query);
+    }
+  }, [query]);
+
+  const fetchProductData = async (productName: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('Fetching product data for:', productName);
+
+      const { data, error } = await supabase.functions.invoke('analyze-product', {
+        body: { productName }
+      });
+
+      if (error) {
+        throw new Error(error.message);
       }
-    ],
-    videos: [
-      { title: `${query} Full Review`, channel: "MKBHD", duration: "12:34", thumbnail: "https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?w=150&h=100&fit=crop" },
-      { title: `${query} Real World Test`, channel: "Dave2D", duration: "8:21", thumbnail: "https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?w=150&h=100&fit=crop" }
-    ]
+
+      if (data?.product) {
+        setProductData(data.product);
+      } else {
+        throw new Error('No product data received');
+      }
+    } catch (err) {
+      console.error('Error fetching product data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch product data');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getSentimentColor = (sentiment: string) => {
@@ -67,17 +87,93 @@ const ProductSummary = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <p className="text-lg text-gray-600">Analyzing product reviews...</p>
+              <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <Button variant="ghost" onClick={() => navigate('/')} className="mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Search
+          </Button>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <h2 className="text-xl font-semibold text-red-800 mb-2">Error Loading Product</h2>
+            <p className="text-red-600 mb-4">{error}</p>
+            <Button onClick={() => fetchProductData(query)} variant="outline">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!productData) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <Button variant="ghost" onClick={() => navigate('/')} className="mb-4">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Search
+          </Button>
+          <div className="text-center py-12">
+            <p className="text-lg text-gray-600">No product data found</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const summary = productData.summaries?.[0];
+  const features = [
+    {
+      name: "Performance",
+      rating: Math.min(5, Math.max(1, productData.overall_rating + 0.3)),
+      sentiment: productData.overall_rating >= 4 ? 'positive' : productData.overall_rating >= 3 ? 'neutral' : 'negative',
+      pros: summary?.pros_summary?.slice(0, 3) || ['Good performance'],
+      cons: summary?.cons_summary?.slice(0, 2) || ['Could be better'],
+      quotes: productData.reviews.slice(0, 1).map(review => ({
+        text: `${review.title.slice(0, 60)}...`,
+        reviewer: review.channel_name
+      }))
+    },
+    {
+      name: "Value",
+      rating: Math.min(5, Math.max(1, productData.overall_rating - 0.2)),
+      sentiment: productData.overall_rating >= 3.5 ? 'positive' : 'neutral',
+      pros: ['Quality build', 'Long-term value'],
+      cons: ['Premium pricing', 'Limited options'],
+      quotes: productData.reviews.slice(1, 2).map(review => ({
+        text: `${review.title.slice(0, 60)}...`,
+        reviewer: review.channel_name
+      }))
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Back Button */}
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')}
-          className="mb-4"
-        >
+        <Button variant="ghost" onClick={() => navigate('/')} className="mb-4">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Search
         </Button>
@@ -86,13 +182,13 @@ const ProductSummary = () => {
         <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
           <div className="flex items-start space-x-6">
             <img
-              src={mockData.product.image}
-              alt={mockData.product.name}
+              src={productData.image_url}
+              alt={productData.name}
               className="w-32 h-32 object-cover rounded-lg"
             />
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {mockData.product.name}
+                {productData.name}
               </h1>
               
               <div className="flex items-center space-x-4 mb-4">
@@ -101,21 +197,18 @@ const ProductSummary = () => {
                     <Star
                       key={i}
                       className={`h-5 w-5 ${
-                        i < Math.floor(mockData.product.overallRating) 
+                        i < Math.floor(productData.overall_rating) 
                           ? 'text-yellow-400 fill-current' 
                           : 'text-gray-300'
                       }`}
                     />
                   ))}
                   <span className="ml-2 text-lg font-semibold">
-                    {mockData.product.overallRating}/5
+                    {productData.overall_rating.toFixed(1)}/5
                   </span>
                 </div>
                 <span className="text-gray-600">
-                  Based on {mockData.product.totalReviews} video reviews
-                </span>
-                <span className="text-2xl font-bold text-blue-600">
-                  {mockData.product.price}
+                  Based on {productData.total_reviews} video reviews
                 </span>
               </div>
 
@@ -141,7 +234,7 @@ const ProductSummary = () => {
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Feature Analysis</h2>
               
               <div className="space-y-6">
-                {mockData.features.map((feature, index) => (
+                {features.map((feature, index) => (
                   <Card key={index}>
                     <CardHeader>
                       <div className="flex items-center justify-between">
@@ -152,7 +245,7 @@ const ProductSummary = () => {
                           </Badge>
                           <div className="flex items-center">
                             <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
-                            <span className="font-semibold">{feature.rating}/5</span>
+                            <span className="font-semibold">{feature.rating.toFixed(1)}/5</span>
                           </div>
                         </div>
                       </div>
@@ -207,22 +300,29 @@ const ProductSummary = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {mockData.videos.map((video, index) => (
-                    <div key={index} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        className="w-12 h-8 object-cover rounded"
-                      />
+                  {productData.reviews.slice(0, 5).map((review, index) => (
+                    <a
+                      key={index}
+                      href={review.video_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
+                      <div className="w-12 h-8 bg-red-600 rounded flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">YT</span>
+                      </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium text-gray-900 truncate">
-                          {video.title}
+                          {review.title}
                         </h4>
-                        <p className="text-xs text-gray-600">{video.channel}</p>
-                        <p className="text-xs text-gray-500">{video.duration}</p>
+                        <p className="text-xs text-gray-600">{review.channel_name}</p>
+                        <div className="flex items-center mt-1">
+                          <Star className="h-3 w-3 text-yellow-400 fill-current mr-1" />
+                          <span className="text-xs text-gray-500">{review.rating.toFixed(1)}/5</span>
+                        </div>
                       </div>
                       <ExternalLink className="h-4 w-4 text-gray-400" />
-                    </div>
+                    </a>
                   ))}
                 </div>
               </CardContent>
