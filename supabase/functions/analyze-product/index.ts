@@ -15,13 +15,22 @@ serve(async (req) => {
 
   try {
     const { productName } = await req.json();
+    console.log('Analyzing product:', productName);
     
     const youtubeApiKey = Deno.env.get('YOUTUBE_API_KEY');
     const serpApiKey = Deno.env.get('SERPAPI_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
     
+    console.log('Environment check:', {
+      hasYouTubeKey: !!youtubeApiKey,
+      hasSerpKey: !!serpApiKey,
+      hasSupabaseUrl: !!supabaseUrl,
+      hasSupabaseKey: !!supabaseKey
+    });
+    
     if (!youtubeApiKey || !serpApiKey) {
+      console.error('Missing API keys:', { youtubeApiKey: !!youtubeApiKey, serpApiKey: !!serpApiKey });
       throw new Error('Missing required API keys');
     }
 
@@ -32,7 +41,7 @@ serve(async (req) => {
       .from('products')
       .select('*, summaries(*), reviews(*)')
       .eq('name', productName)
-      .single();
+      .maybeSingle();
 
     if (existingProduct) {
       console.log('Found existing product data');
@@ -47,17 +56,32 @@ serve(async (req) => {
     const youtubeQuery = `${productName} review`;
     const youtubeUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(youtubeQuery)}&type=video&maxResults=10&key=${youtubeApiKey}`;
     
+    console.log('Calling YouTube API...');
     const youtubeResponse = await fetch(youtubeUrl);
     const youtubeData = await youtubeResponse.json();
 
-    if (!youtubeData.items) {
+    if (youtubeData.error) {
+      console.error('YouTube API error:', youtubeData.error);
+      throw new Error(`YouTube API error: ${youtubeData.error.message}`);
+    }
+
+    if (!youtubeData.items || youtubeData.items.length === 0) {
+      console.error('No YouTube videos found');
       throw new Error('No YouTube videos found');
     }
 
+    console.log(`Found ${youtubeData.items.length} YouTube videos`);
+
     // Get additional product info from SerpAPI
     const serpUrl = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(productName + ' specs price')}&api_key=${serpApiKey}`;
+    console.log('Calling SerpAPI...');
     const serpResponse = await fetch(serpUrl);
     const serpData = await serpResponse.json();
+
+    if (serpData.error) {
+      console.error('SerpAPI error:', serpData.error);
+      // Continue without SerpAPI data instead of failing
+    }
 
     // Create product entry
     const { data: product, error: productError } = await supabase
@@ -74,8 +98,11 @@ serve(async (req) => {
       .single();
 
     if (productError) {
+      console.error('Product creation error:', productError);
       throw new Error(`Failed to create product: ${productError.message}`);
     }
+
+    console.log('Created product:', product.id);
 
     // Process YouTube videos and create reviews
     const reviews = [];
@@ -111,6 +138,8 @@ serve(async (req) => {
 
     if (reviewsError) {
       console.error('Failed to insert reviews:', reviewsError);
+    } else {
+      console.log(`Inserted ${reviews.length} reviews`);
     }
 
     // Calculate overall rating
@@ -152,6 +181,8 @@ serve(async (req) => {
 
     if (summaryError) {
       console.error('Failed to insert summary:', summaryError);
+    } else {
+      console.log('Created summary');
     }
 
     // Fetch the complete product data
@@ -161,6 +192,7 @@ serve(async (req) => {
       .eq('id', product.id)
       .single();
 
+    console.log('Analysis completed successfully');
     return new Response(JSON.stringify({ product: finalProduct }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
