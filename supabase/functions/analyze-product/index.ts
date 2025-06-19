@@ -17,7 +17,8 @@ serve(async (req) => {
     const { productName } = await req.json();
     console.log('Analyzing product:', productName);
     
-    const youtubeApiKey = Deno.env.get('YOUTUBE_API_KEY');
+    // Try different possible names for the YouTube API key
+    const youtubeApiKey = Deno.env.get('YOUTUBE_API_KEY') || Deno.env.get('YOUTUBE_DATA_API_KEY');
     const serpApiKey = Deno.env.get('SERPAPI_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY');
@@ -29,9 +30,14 @@ serve(async (req) => {
       hasSupabaseKey: !!supabaseKey
     });
     
-    if (!youtubeApiKey || !serpApiKey) {
-      console.error('Missing API keys:', { youtubeApiKey: !!youtubeApiKey, serpApiKey: !!serpApiKey });
-      throw new Error('Missing required API keys');
+    if (!youtubeApiKey) {
+      console.error('YouTube API key not found. Checked: YOUTUBE_API_KEY, YOUTUBE_DATA_API_KEY');
+      throw new Error('YouTube API key is required');
+    }
+
+    if (!serpApiKey) {
+      console.error('SERPAPI_KEY not found');
+      throw new Error('SerpAPI key is required');
     }
 
     const supabase = createClient(supabaseUrl!, supabaseKey!);
@@ -56,31 +62,44 @@ serve(async (req) => {
     const youtubeQuery = `${productName} review`;
     const youtubeUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(youtubeQuery)}&type=video&maxResults=10&key=${youtubeApiKey}`;
     
-    console.log('Calling YouTube API...');
-    const youtubeResponse = await fetch(youtubeUrl);
-    const youtubeData = await youtubeResponse.json();
-
-    if (youtubeData.error) {
-      console.error('YouTube API error:', youtubeData.error);
-      throw new Error(`YouTube API error: ${youtubeData.error.message}`);
+    console.log('Calling YouTube API with URL:', youtubeUrl.replace(youtubeApiKey, '[HIDDEN]'));
+    
+    let youtubeData;
+    try {
+      const youtubeResponse = await fetch(youtubeUrl);
+      youtubeData = await youtubeResponse.json();
+      
+      if (youtubeData.error) {
+        console.error('YouTube API error:', youtubeData.error);
+        throw new Error(`YouTube API error: ${youtubeData.error.message}`);
+      }
+    } catch (error) {
+      console.error('Failed to fetch from YouTube API:', error);
+      throw new Error(`Failed to fetch YouTube data: ${error.message}`);
     }
 
     if (!youtubeData.items || youtubeData.items.length === 0) {
       console.error('No YouTube videos found');
-      throw new Error('No YouTube videos found');
+      throw new Error('No YouTube videos found for this product');
     }
 
     console.log(`Found ${youtubeData.items.length} YouTube videos`);
 
-    // Get additional product info from SerpAPI
-    const serpUrl = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(productName + ' specs price')}&api_key=${serpApiKey}`;
-    console.log('Calling SerpAPI...');
-    const serpResponse = await fetch(serpUrl);
-    const serpData = await serpResponse.json();
+    // Get additional product info from SerpAPI (optional)
+    let serpData = null;
+    try {
+      const serpUrl = `https://serpapi.com/search.json?engine=google&q=${encodeURIComponent(productName + ' specs price')}&api_key=${serpApiKey}`;
+      console.log('Calling SerpAPI...');
+      const serpResponse = await fetch(serpUrl);
+      serpData = await serpResponse.json();
 
-    if (serpData.error) {
-      console.error('SerpAPI error:', serpData.error);
-      // Continue without SerpAPI data instead of failing
+      if (serpData.error) {
+        console.error('SerpAPI error:', serpData.error);
+        serpData = null; // Continue without SerpAPI data
+      }
+    } catch (error) {
+      console.error('SerpAPI fetch failed:', error);
+      serpData = null; // Continue without SerpAPI data
     }
 
     // Create product entry
@@ -199,7 +218,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in analyze-product function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: 'Check the Edge Function logs for more information'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
