@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
@@ -128,7 +127,7 @@ serve(async (req) => {
     let totalRating = 0;
     let validRatings = 0;
 
-    for (const item of youtubeData.items.slice(0, 5)) {
+    for (const item of youtubeData.items.slice(0, 10)) {
       // Generate a mock rating based on view count and title sentiment
       const mockRating = Math.random() * 2 + 3; // Between 3-5
       totalRating += mockRating;

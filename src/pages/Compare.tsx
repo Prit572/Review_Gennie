@@ -1,70 +1,99 @@
-
-import React, { useState } from 'react';
-import { Star, Plus, X, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Star, Plus, X, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
+import { supabase } from '@/integrations/supabase/client';
+import { fetchProductData } from '@/lib/utils';
+
+function useDebounce(value: string, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(handler);
+  }, [value, delay]);
+  return debouncedValue;
+}
 
 const Compare = () => {
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "iPhone 15 Pro",
-      image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=200&h=200&fit=crop",
-      overallRating: 4.3,
-      price: "$999",
-      features: {
-        camera: { rating: 4.7, sentiment: "positive" },
-        battery: { rating: 3.8, sentiment: "neutral" },
-        performance: { rating: 4.8, sentiment: "positive" },
-        design: { rating: 4.5, sentiment: "positive" },
-        value: { rating: 3.2, sentiment: "negative" }
-      }
-    },
-    {
-      id: 2,
-      name: "Samsung Galaxy S24 Ultra",
-      image: "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=200&h=200&fit=crop",
-      overallRating: 4.5,
-      price: "$1,199",
-      features: {
-        camera: { rating: 4.9, sentiment: "positive" },
-        battery: { rating: 4.3, sentiment: "positive" },
-        performance: { rating: 4.6, sentiment: "positive" },
-        design: { rating: 4.2, sentiment: "positive" },
-        value: { rating: 3.8, sentiment: "neutral" }
-      }
-    }
-  ]);
-
+  const [products, setProducts] = useState([]);
   const [newProductSearch, setNewProductSearch] = useState('');
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState(null);
+  const [searchResult, setSearchResult] = useState(null);
 
-  const removeProduct = (id: number) => {
+  // Debounced search as you type
+  useEffect(() => {
+    if (!showAddProduct || !newProductSearch.trim()) {
+      setSearchResult(null);
+      setSearchError(null);
+      setSearchLoading(false);
+      return;
+    }
+    setSearchLoading(true);
+    setSearchError(null);
+    const timeout = setTimeout(async () => {
+      try {
+        const product = await fetchProductData(newProductSearch.trim());
+        setSearchResult(product);
+        setSearchError(!product ? 'No product found' : null);
+      } catch (err) {
+        setSearchResult(null);
+        setSearchError(err.message || 'Failed to fetch product');
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 600); // debounce
+    return () => clearTimeout(timeout);
+  }, [newProductSearch, showAddProduct]);
+
+  const removeProduct = (id) => {
     setProducts(products.filter(p => p.id !== id));
   };
 
+  // Map real product data to compare table format
+  function mapProductToCompare(product) {
+    // Fallbacks for missing data
+    const features = {
+      camera: { rating: 4.0, sentiment: 'neutral' },
+      battery: { rating: 4.0, sentiment: 'neutral' },
+      performance: { rating: 4.0, sentiment: 'neutral' },
+      design: { rating: 4.0, sentiment: 'neutral' },
+      value: { rating: 4.0, sentiment: 'neutral' },
+    };
+    // If product has reviews, try to extract feature ratings
+    if (product.reviews && product.reviews.length) {
+      // Example: use average rating for all features
+      const avg = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+      const ratings = product.reviews.map(r => r.rating || 0);
+      const avgRating = avg(ratings);
+      Object.keys(features).forEach(key => {
+        features[key] = {
+          rating: avgRating,
+          sentiment: avgRating >= 4 ? 'positive' : avgRating >= 3 ? 'neutral' : 'negative',
+        };
+      });
+    }
+    return {
+      id: product.id,
+      name: product.name,
+      image: product.image_url,
+      overallRating: product.overall_rating || 4.0,
+      price: product.price || '', // If available
+      features,
+    };
+  }
+
   const addProduct = () => {
-    if (newProductSearch.trim()) {
-      const newProduct = {
-        id: Date.now(),
-        name: newProductSearch,
-        image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=200&h=200&fit=crop",
-        overallRating: 4.0,
-        price: "$899",
-        features: {
-          camera: { rating: 4.2, sentiment: "positive" },
-          battery: { rating: 4.0, sentiment: "positive" },
-          performance: { rating: 4.3, sentiment: "positive" },
-          design: { rating: 4.1, sentiment: "positive" },
-          value: { rating: 4.2, sentiment: "positive" }
-        }
-      };
-      setProducts([...products, newProduct]);
+    if (searchResult) {
+      setProducts([...products, mapProductToCompare(searchResult)]);
       setNewProductSearch('');
       setShowAddProduct(false);
+      setSearchResult(null);
+      setSearchError(null);
     }
   };
 
@@ -148,19 +177,21 @@ const Compare = () => {
                         <Input
                           placeholder="Search product..."
                           value={newProductSearch}
-                          onChange={(e) => setNewProductSearch(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && addProduct()}
+                          onChange={e => setNewProductSearch(e.target.value)}
                           className="text-sm"
                         />
+                        {searchLoading && <div className="text-xs text-gray-500">Searching...</div>}
+                        {searchError && <div className="text-xs text-red-500">{searchError}</div>}
+                        {searchResult && !searchError && (
+                          <div className="flex items-center space-x-2 p-2 border rounded cursor-pointer hover:bg-gray-50" onClick={addProduct}>
+                            <img src={searchResult.image_url} alt={searchResult.name} className="w-8 h-8 object-cover rounded" />
+                            <span className="font-medium">{searchResult.name}</span>
+                            <span className="text-xs text-gray-500">{searchResult.overall_rating?.toFixed(1)}/5</span>
+                          </div>
+                        )}
                         <div className="flex space-x-2">
-                          <Button size="sm" onClick={addProduct}>Add</Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            onClick={() => setShowAddProduct(false)}
-                          >
-                            Cancel
-                          </Button>
+                          <Button size="sm" onClick={addProduct} disabled={!searchResult || !!searchError}>Add</Button>
+                          <Button size="sm" variant="outline" onClick={() => { setShowAddProduct(false); setNewProductSearch(''); setSearchResult(null); setSearchError(null); }}>Cancel</Button>
                         </div>
                       </div>
                     ) : (

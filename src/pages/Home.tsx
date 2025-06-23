@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -76,14 +75,6 @@ const Home = () => {
             >
               <PlayCircle className="mr-2 h-5 w-5" />
               See Sample Summary
-            </Button>
-            <Button 
-              variant="outline" 
-              size="lg"
-              className="px-8 py-3 text-lg border-2"
-              onClick={handleTryFree}
-            >
-              {user ? 'Start Searching' : 'Try Free'}
             </Button>
           </div>
         </div>

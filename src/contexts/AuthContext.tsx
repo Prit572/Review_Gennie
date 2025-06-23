@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,6 +62,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       console.log('Sign up response:', data, error);
+      // Insert into public.users table if signup is successful and user exists
+      if (!error && data.user) {
+        await supabase.from('users').insert({
+          id: data.user.id,
+          email: data.user.email,
+          full_name: fullName || null,
+          avatar_url: null,
+          created_at: new Date().toISOString(),
+        });
+      }
       return { error };
     } catch (err) {
       console.error('Sign up error:', err);

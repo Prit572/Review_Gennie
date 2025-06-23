@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Star, ThumbsUp, ThumbsDown, ExternalLink, ArrowLeft, Loader2 } from 'lucide-react';
@@ -142,29 +141,39 @@ const ProductSummary = () => {
     );
   }
 
-  const summary = productData.summaries?.[0];
+  // Calculate average rating and sentiment from reviews
+  const getAverage = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+  const reviews = productData.reviews || [];
+  const avgRating = getAverage(reviews.map(r => r.rating));
+  const avgSentimentScore = getAverage(reviews.map(r => r.sentiment_score));
+  const sentiment = avgRating >= 4 ? 'positive' : avgRating >= 3 ? 'neutral' : 'negative';
+
+  // Get top pros/cons by frequency
+  const getTopItems = (items: string[], n: number) => {
+    const freq: Record<string, number> = {};
+    items.forEach(item => { freq[item] = (freq[item] || 0) + 1; });
+    return Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, n)
+      .map(([item]) => item);
+  };
+  const allPros = reviews.flatMap(r => r.pros || []);
+  const allCons = reviews.flatMap(r => r.cons || []);
+  const topPros = getTopItems(allPros, 3);
+  const topCons = getTopItems(allCons, 3);
+  const topQuotes = reviews.slice(0, 2).map(review => ({
+    text: `${review.title.slice(0, 60)}...`,
+    reviewer: review.channel_name
+  }));
+
   const features = [
     {
-      name: "Performance",
-      rating: Math.min(5, Math.max(1, productData.overall_rating + 0.3)),
-      sentiment: productData.overall_rating >= 4 ? 'positive' : productData.overall_rating >= 3 ? 'neutral' : 'negative',
-      pros: summary?.pros_summary?.slice(0, 3) || ['Good performance'],
-      cons: summary?.cons_summary?.slice(0, 2) || ['Could be better'],
-      quotes: productData.reviews.slice(0, 1).map(review => ({
-        text: `${review.title.slice(0, 60)}...`,
-        reviewer: review.channel_name
-      }))
-    },
-    {
-      name: "Value",
-      rating: Math.min(5, Math.max(1, productData.overall_rating - 0.2)),
-      sentiment: productData.overall_rating >= 3.5 ? 'positive' : 'neutral',
-      pros: ['Quality build', 'Long-term value'],
-      cons: ['Premium pricing', 'Limited options'],
-      quotes: productData.reviews.slice(1, 2).map(review => ({
-        text: `${review.title.slice(0, 60)}...`,
-        reviewer: review.channel_name
-      }))
+      name: "Overall",
+      rating: avgRating,
+      sentiment,
+      pros: topPros.length ? topPros : ["Good performance"],
+      cons: topCons.length ? topCons : ["Could be better"],
+      quotes: topQuotes
     }
   ];
 
@@ -197,14 +206,14 @@ const ProductSummary = () => {
                     <Star
                       key={i}
                       className={`h-5 w-5 ${
-                        i < Math.floor(productData.overall_rating) 
-                          ? 'text-yellow-400 fill-current' 
+                        i < Math.round(avgRating)
+                          ? 'text-yellow-400 fill-current'
                           : 'text-gray-300'
                       }`}
                     />
                   ))}
                   <span className="ml-2 text-lg font-semibold">
-                    {productData.overall_rating.toFixed(1)}/5
+                    {avgRating.toFixed(1)}/5
                   </span>
                 </div>
                 <span className="text-gray-600">
@@ -296,11 +305,11 @@ const ProductSummary = () => {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Source Reviews</CardTitle>
+                <CardTitle>Top 10 Source Reviews</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {productData.reviews.slice(0, 5).map((review, index) => (
+                  {productData.reviews.slice(0, 10).map((review, index) => (
                     <a
                       key={index}
                       href={review.video_url}

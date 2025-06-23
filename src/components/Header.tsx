@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Youtube, Menu, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,23 @@ const Header = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const [fullName, setFullName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchFullName = async () => {
+      if (user) {
+        // Fetch from users table
+        const { data, error } = await import('@/integrations/supabase/client').then(({ supabase }) =>
+          supabase.from('users').select('full_name').eq('id', user.id).single()
+        );
+        if (data && data.full_name) setFullName(data.full_name);
+        else setFullName(null);
+      } else {
+        setFullName(null);
+      }
+    };
+    fetchFullName();
+  }, [user]);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -65,7 +81,7 @@ const Header = () => {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2">
                     <User className="h-4 w-4" />
-                    <span>{user.email}</span>
+                    <span>{fullName || user.email}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
