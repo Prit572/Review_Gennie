@@ -47,7 +47,7 @@ const Header = () => {
             <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg">
               <Youtube className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-gray-900">ReviewSummarizer</span>
+            <span className="font-bold text-2xl tracking-tight">ReviewGennie</span>
           </Link>
 
           <nav className="hidden md:flex items-center space-x-8">

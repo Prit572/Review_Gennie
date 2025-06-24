@@ -39,26 +39,29 @@ const ProductSummary = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get('q') || '';
+  const videoId = searchParams.get('videoId') || '';
   
   const [productData, setProductData] = useState<ProductData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (query) {
-      fetchProductData(query);
+    if (videoId) {
+      fetchProductData('', videoId);
+    } else if (query) {
+      fetchProductData(query, '');
     }
-  }, [query]);
+  }, [query, videoId]);
 
-  const fetchProductData = async (productName: string) => {
+  const fetchProductData = async (productName: string, videoId: string) => {
     try {
       setLoading(true);
       setError(null);
 
-      console.log('Fetching product data for:', productName);
+      console.log('Fetching product data for:', productName, videoId);
 
       const { data, error } = await supabase.functions.invoke('analyze-product', {
-        body: { productName }
+        body: videoId ? { videoId } : { productName }
       });
 
       if (error) {
@@ -115,7 +118,7 @@ const ProductSummary = () => {
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
             <h2 className="text-xl font-semibold text-red-800 mb-2">Error Loading Product</h2>
             <p className="text-red-600 mb-4">{error}</p>
-            <Button onClick={() => fetchProductData(query)} variant="outline">
+            <Button onClick={() => fetchProductData(query, videoId)} variant="outline">
               Try Again
             </Button>
           </div>
@@ -166,7 +169,8 @@ const ProductSummary = () => {
     reviewer: review.channel_name
   }));
 
-  const features = [
+  // Use features from backend if available, otherwise fallback to computed overall
+  const features = (productData as any).features || [
     {
       name: "Overall",
       rating: avgRating,
@@ -217,7 +221,7 @@ const ProductSummary = () => {
                   </span>
                 </div>
                 <span className="text-gray-600">
-                  Based on {productData.total_reviews} video reviews
+                  Based on 5 video reviews
                 </span>
               </div>
 
@@ -228,7 +232,10 @@ const ProductSummary = () => {
                 >
                   Add to Compare
                 </Button>
-                <Button variant="outline">
+                <Button variant="outline" onClick={() => {
+                  navigator.clipboard.writeText(window.location.href);
+                  alert('Summary link copied to clipboard!');
+                }}>
                   Share Summary
                 </Button>
               </div>
@@ -254,7 +261,7 @@ const ProductSummary = () => {
                           </Badge>
                           <div className="flex items-center">
                             <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
-                            <span className="font-semibold">{feature.rating.toFixed(1)}/5</span>
+                            <span className="font-semibold">{typeof feature.rating === 'number' ? feature.rating.toFixed(1) : feature.rating}/5</span>
                           </div>
                         </div>
                       </div>
@@ -267,7 +274,7 @@ const ProductSummary = () => {
                             Pros
                           </h4>
                           <ul className="space-y-1">
-                            {feature.pros.map((pro, i) => (
+                            {feature.pros.map((pro: string, i: number) => (
                               <li key={i} className="text-sm text-gray-600">• {pro}</li>
                             ))}
                           </ul>
@@ -278,7 +285,7 @@ const ProductSummary = () => {
                             Cons
                           </h4>
                           <ul className="space-y-1">
-                            {feature.cons.map((con, i) => (
+                            {feature.cons.map((con: string, i: number) => (
                               <li key={i} className="text-sm text-gray-600">• {con}</li>
                             ))}
                           </ul>
@@ -287,7 +294,7 @@ const ProductSummary = () => {
                       
                       <div>
                         <h4 className="font-semibold text-gray-700 mb-2">Key Quotes</h4>
-                        {feature.quotes.map((quote, i) => (
+                        {feature.quotes.map((quote: { text: string; reviewer: string }, i: number) => (
                           <blockquote key={i} className="border-l-4 border-blue-200 pl-4 py-2 bg-blue-50 rounded-r">
                             <p className="text-sm italic text-gray-700">"{quote.text}"</p>
                             <cite className="text-xs text-gray-500">— {quote.reviewer}</cite>

@@ -12,7 +12,7 @@ interface SearchBarProps {
 
 const SearchBar = ({ 
   onSearch, 
-  placeholder = "Search product or paste YouTube links",
+  placeholder = "Search for a product (e.g., iPhone 15 Pro)",
   showExamples = true 
 }: SearchBarProps) => {
   const [query, setQuery] = useState('');

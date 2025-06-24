@@ -6,12 +6,24 @@ import SearchBar from '@/components/SearchBar';
 import Header from '@/components/Header';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Helper to extract YouTube video ID from a link
+function extractYouTubeVideoId(url) {
+  const regex = /(?:youtube\.com\/(?:[^\/]+\/.+|(?:v|e(?:mbed)?|shorts)\/|.*[?&]v=)|youtu\.be\/)([\w-]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+}
+
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const handleSearch = (query: string) => {
-    // Navigate to results page with query
+    if (!user) {
+      alert('Please sign in to analyze a product.');
+      navigate('/auth');
+      return;
+    }
+    // Always treat input as product name
     navigate(`/summary?q=${encodeURIComponent(query)}`);
   };
 
@@ -84,7 +96,7 @@ const Home = () => {
       <section className="py-16 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
-            Why ReviewSummarizer?
+            Why ReviewGennie?
           </h2>
           
           <div className="grid md:grid-cols-3 gap-8">
