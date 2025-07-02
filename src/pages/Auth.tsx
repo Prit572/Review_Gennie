@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
+import { Chrome, Facebook } from 'lucide-react';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -15,8 +15,9 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  const { signUp, signIn, user } = useAuth();
+  const { signUp, signIn, signInWithGoogle, signInWithFacebook, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -30,7 +31,7 @@ const Auth = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setSignUpSuccess(false);
+    setError(null);
 
     try {
       if (isSignUp) {
@@ -114,6 +115,36 @@ const Auth = () => {
     setLoading(false);
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { error } = await signInWithGoogle();
+      if (error) {
+        setError(error.message);
+      }
+    } catch (err) {
+      setError('Google sign-in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFacebookSignIn = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { error } = await signInWithFacebook();
+      if (error) {
+        setError(error.message);
+      }
+    } catch (err) {
+      setError('Facebook sign-in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -126,6 +157,41 @@ const Auth = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* OAuth Buttons */}
+            <div className="space-y-3 mb-6">
+              <Button 
+                type="button"
+                variant="outline" 
+                className="w-full flex items-center justify-center space-x-2"
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+              >
+                <Chrome className="h-4 w-4" />
+                <span>Continue with Google</span>
+              </Button>
+              
+              <Button 
+                type="button"
+                variant="outline" 
+                className="w-full flex items-center justify-center space-x-2"
+                onClick={handleFacebookSignIn}
+                disabled={loading}
+              >
+                <Facebook className="h-4 w-4" />
+                <span>Continue with Facebook</span>
+              </Button>
+            </div>
+
+            {/* Divider */}
+            <div className="relative mb-6">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-white px-2 text-gray-500">Or continue with email</span>
+              </div>
+            </div>
+
             {signUpSuccess ? (
               <div className="text-center space-y-4">
                 <div className="p-4 bg-green-50 border border-green-200 rounded-lg">

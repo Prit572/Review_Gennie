@@ -1,73 +1,140 @@
-# Welcome to your Lovable project
+# ReviewGennie
 
-## Project info
+ReviewGennie is an AI-powered application that summarizes YouTube product reviews using advanced natural language processing. It provides detailed, feature-level breakdowns of products based on comprehensive video analysis.
 
-**URL**: https://lovable.dev/projects/f2696b38-5656-48a7-b307-4a5242c8bdb6
+## Features
 
-## How can I edit this code?
+- **AI-Powered Summaries**: Generate comprehensive product summaries from YouTube reviews
+- **Feature-Level Analysis**: Detailed breakdowns covering Camera, Battery, Design, Performance, and more
+- **User Authentication**: Secure sign-in with email/password or OAuth providers (Google & Facebook)
+- **Modern UI**: Beautiful, responsive interface built with shadcn-ui and Tailwind CSS
+- **Real-time Processing**: Instant analysis using OpenAI's GPT models
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript, Vite
+- **UI Components**: shadcn-ui, Tailwind CSS
+- **Backend**: Supabase (Database, Auth, Edge Functions)
+- **AI**: OpenAI GPT-4 for content analysis
+- **Authentication**: Supabase Auth with OAuth providers
+- **Styling**: Tailwind CSS with custom design system
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/f2696b38-5656-48a7-b307-4a5242c8bdb6) and start prompting.
+## Quick Start
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ and npm
+- Supabase account and project
+- OpenAI API key
+- Google Cloud Console access (for OAuth)
+- Facebook Developers account (for OAuth)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd ReviewGennie
+   ```
 
-Follow these steps:
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. **Set up environment variables**
+   Create a `.env` file in the root directory:
+   ```env
+   VITE_SUPABASE_URL=your-supabase-url
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+   ```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. **Set up Supabase**
+   - Create a new Supabase project
+   - Run the SQL schema from `supabase/schema.sql`
+   - Deploy the edge function from `supabase/functions/analyze-product/`
 
-# Step 3: Install the necessary dependencies.
-npm i
+5. **Configure OAuth (Optional)**
+   Follow the detailed setup guide in [OAUTH_SETUP.md](./OAUTH_SETUP.md) to enable Google and Facebook sign-in.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+6. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+7. **Start the transcript server** (in a separate terminal)
+   ```bash
+   node youtube-transcript-server.js
+   ```
+
+## Usage
+
+1. **Sign In**: Use email/password or OAuth providers to create an account
+2. **Search Products**: Enter a product name (e.g., "iPhone 15 Pro")
+3. **Get Analysis**: Receive a comprehensive summary with feature breakdowns
+4. **Compare Products**: Use the compare feature to analyze multiple products
+
+## Project Structure
+
+```
+src/
+├── components/          # Reusable UI components
+│   ├── ui/             # shadcn-ui components
+│   ├── Header.tsx      # Navigation header
+│   ├── ProductCard.tsx # Product display component
+│   └── SearchBar.tsx   # Search functionality
+├── contexts/           # React contexts
+│   └── AuthContext.tsx # Authentication state management
+├── pages/              # Application pages
+│   ├── Auth.tsx        # Sign in/up page
+│   ├── Home.tsx        # Main dashboard
+│   ├── ProductSummary.tsx # Product analysis results
+│   └── Compare.tsx     # Product comparison
+├── integrations/       # External service integrations
+│   └── supabase/       # Supabase client and types
+└── lib/                # Utility functions
 ```
 
-**Edit a file directly in GitHub**
+## Authentication
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+ReviewGennie supports multiple authentication methods:
 
-**Use GitHub Codespaces**
+- **Email/Password**: Traditional sign-up and sign-in
+- **Google OAuth**: One-click sign-in with Google accounts
+- **Facebook OAuth**: One-click sign-in with Facebook accounts
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Product analysis is restricted to authenticated users only.
 
-## What technologies are used for this project?
+## Deployment
 
-This project is built with:
+### Vercel (Recommended)
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. Connect your GitHub repository to Vercel
+2. Set environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
 
-## How can I deploy this project?
+### Other Platforms
 
-Simply open [Lovable](https://lovable.dev/projects/f2696b38-5656-48a7-b307-4a5242c8bdb6) and click on Share -> Publish.
+The app can be deployed to any platform that supports Vite builds:
+- Netlify
+- Railway
+- Render
+- AWS Amplify
 
-## Can I connect a custom domain to my Lovable project?
+## Contributing
 
-Yes, you can!
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## License
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+This project is licensed under the MIT License.
+
+## Support
+
+For issues and questions:
+- Check the [OAuth Setup Guide](./OAUTH_SETUP.md) for authentication issues
+- Review the Supabase documentation for backend configuration
+- Open an issue on GitHub for bugs or feature requests
