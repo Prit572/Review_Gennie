@@ -148,6 +148,13 @@ const Header = () => {
                 <span className="text-2xl">&times;</span>
               </Button>
             </div>
+            {/* User info for mobile */}
+            {user && (
+              <div className="flex items-center space-x-2 px-6 pb-2">
+                <User className="h-5 w-5 text-blue-600" />
+                <span className="font-medium text-base text-gray-900 truncate">{fullName || user.email}</span>
+              </div>
+            )}
             <nav className="flex flex-col space-y-2 px-6 py-2">
               <Link to="/" className={`text-base font-medium ${isActive('/') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`} onClick={() => setMobileMenuOpen(false)}>Home</Link>
               <Link to="/sample" className={`text-base font-medium ${isActive('/sample') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`} onClick={() => setMobileMenuOpen(false)}>Sample Summary</Link>
