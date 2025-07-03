@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Fragment, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Youtube, Menu, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ const Header = () => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const [fullName, setFullName] = useState<string | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchFullName = async () => {
@@ -32,6 +34,25 @@ const Header = () => {
     fetchFullName();
   }, [user]);
 
+  // Close menu on outside click or ESC
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    }
+    function handleEsc(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [mobileMenuOpen]);
+
   const isActive = (path: string) => location.pathname === path;
 
   const handleSignOut = async () => {
@@ -40,7 +61,7 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-100">
+    <header className="bg-white shadow-sm border-b border-gray-100 relative z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
@@ -111,11 +132,38 @@ const Header = () => {
             )}
           </nav>
 
-          <Button variant="ghost" size="sm" className="md:hidden">
+          <Button variant="ghost" size="sm" className="md:hidden ml-auto" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label="Open menu">
             <Menu className="h-5 w-5" />
           </Button>
         </div>
       </div>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <Fragment>
+          <div className="fixed inset-0 bg-black bg-opacity-30 z-40" />
+          <div ref={mobileMenuRef} className="fixed top-0 right-0 w-4/5 max-w-xs h-full bg-white shadow-lg z-50 animate-slide-in flex flex-col">
+            <div className="flex justify-end p-4">
+              <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)} aria-label="Close menu">
+                <span className="text-2xl">&times;</span>
+              </Button>
+            </div>
+            <nav className="flex flex-col space-y-2 px-6 py-2">
+              <Link to="/" className={`text-base font-medium ${isActive('/') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`} onClick={() => setMobileMenuOpen(false)}>Home</Link>
+              <Link to="/sample" className={`text-base font-medium ${isActive('/sample') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`} onClick={() => setMobileMenuOpen(false)}>Sample Summary</Link>
+              <Link to="/compare" className={`text-base font-medium ${isActive('/compare') ? 'text-blue-600' : 'text-gray-700 hover:text-blue-600'}`} onClick={() => setMobileMenuOpen(false)}>Compare</Link>
+              {user ? (
+                <Button variant="outline" size="sm" className="mt-2" onClick={async () => { await handleSignOut(); setMobileMenuOpen(false); }}>Sign Out</Button>
+              ) : (
+                <Fragment>
+                  <Button variant="outline" size="sm" className="mt-2" onClick={() => { navigate('/auth'); setMobileMenuOpen(false); }}>Sign In</Button>
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 mt-2" onClick={() => { navigate('/auth'); setMobileMenuOpen(false); }}>Try Free</Button>
+                </Fragment>
+              )}
+            </nav>
+          </div>
+        </Fragment>
+      )}
     </header>
   );
 };
