@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
-import { Chrome, Facebook } from 'lucide-react';
+import { Chrome } from 'lucide-react';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -17,7 +17,7 @@ const Auth = () => {
   const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { signUp, signIn, signInWithGoogle, signInWithFacebook, user } = useAuth();
+  const { signUp, signIn, signInWithGoogle, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -130,21 +130,6 @@ const Auth = () => {
     }
   };
 
-  const handleFacebookSignIn = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { error } = await signInWithFacebook();
-      if (error) {
-        setError(error.message);
-      }
-    } catch (err) {
-      setError('Facebook sign-in failed');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -168,17 +153,6 @@ const Auth = () => {
               >
                 <Chrome className="h-4 w-4" />
                 <span>Continue with Google</span>
-              </Button>
-              
-              <Button 
-                type="button"
-                variant="outline" 
-                className="w-full flex items-center justify-center space-x-2"
-                onClick={handleFacebookSignIn}
-                disabled={loading}
-              >
-                <Facebook className="h-4 w-4" />
-                <span>Continue with Facebook</span>
               </Button>
             </div>
 
