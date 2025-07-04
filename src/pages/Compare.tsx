@@ -77,12 +77,17 @@ const Compare = () => {
         };
       });
     }
+    // Calculate overallRating as the average of all feature ratings if not provided
+    const featureRatings = Object.values(features).map(f => f.rating);
+    const calculatedOverall = featureRatings.length ? featureRatings.reduce((a, b) => a + b, 0) / featureRatings.length : 4.0;
+    let price = parseFloat(product.price);
+    if (isNaN(price)) price = 0;
     return {
       id: product.id,
       name: product.name,
       image: product.image_url,
-      overallRating: product.overall_rating || 4.0,
-      price: product.price || '', // If available
+      overallRating: product.overall_rating || calculatedOverall,
+      price: price, // Ensure price is a number
       features,
     };
   }
@@ -259,7 +264,15 @@ const Compare = () => {
                 <div>
                   <h4 className="font-semibold text-blue-700 mb-2">Best Value</h4>
                   <p className="text-sm text-gray-600">
-                    Based on features and price, {products[0].name} offers the best value proposition.
+                    {/* Best value: highest overallRating/price ratio, skip if price is 0 */}
+                    {(() => {
+                      const valueProducts = products.filter(p => p.price > 0);
+                      if (valueProducts.length === 0) return products[0].name + ' offers the best value proposition.';
+                      const bestValue = valueProducts.reduce((best, current) =>
+                        (current.overallRating / current.price) > (best.overallRating / best.price) ? current : best
+                      );
+                      return `${bestValue.name} offers the best value proposition.`;
+                    })()}
                   </p>
                 </div>
 
