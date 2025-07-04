@@ -6,19 +6,22 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Fetch product data from the Supabase edge function (analyze-product)
+ * Fetch product data using Gemini API for dynamic feature extraction
  * @param {string} productName
  * @returns {Promise<ProductData|null>} Product data or null if not found
  * @throws Error if fetch fails
  */
 export async function fetchProductData(productName) {
-  // Dynamic import to avoid circular dependency
-  const { supabase } = await import('@/integrations/supabase/client');
-  const { data, error } = await supabase.functions.invoke('analyze-product', {
-    body: { productName }
+  // Call the local Gemini proxy endpoint
+  const response = await fetch('http://localhost:4000/api/gemini-analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ productName })
   });
-  if (error) throw new Error(error.message);
-  return data?.product || null;
+  if (!response.ok) throw new Error('Gemini proxy API error');
+  const data = await response.json();
+  // Expecting data.product to be an object like { id, name, features: { ... } }
+  return data.product || null;
 }
 
 /**

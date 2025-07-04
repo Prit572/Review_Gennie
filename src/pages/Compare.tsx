@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Header from '@/components/Header';
 import { supabase } from '@/integrations/supabase/client';
-import { fetchProductData } from '@/lib/utils';
+import { fetchProductData, searchStaticProducts } from '@/lib/utils';
 
 function useDebounce(value: string, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -37,6 +37,7 @@ const Compare = () => {
     setSearchError(null);
     const timeout = setTimeout(async () => {
       try {
+        // Restore dynamic product search using fetchProductData
         const product = await fetchProductData(newProductSearch.trim());
         setSearchResult(product);
         setSearchError(!product ? 'No product found' : null);
@@ -110,13 +111,10 @@ const Compare = () => {
     }
   };
 
-  const featureNames = {
-    camera: "Camera",
-    battery: "Battery",
-    performance: "Performance", 
-    design: "Design",
-    value: "Value"
-  };
+  // Compute the union of all features from selected products
+  const allFeatureKeys = Array.from(
+    new Set(products.flatMap(product => Object.keys(product.features || {})))
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -216,24 +214,28 @@ const Compare = () => {
               </thead>
               
               <tbody className="divide-y divide-gray-200">
-                {Object.entries(featureNames).map(([key, name]) => (
+                {allFeatureKeys.map((key) => (
                   <tr key={key} className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-medium text-gray-900">
-                      {name}
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
                     </td>
                     {products.map((product) => (
                       <td key={product.id} className="px-6 py-4 text-center">
-                        <div className="flex flex-col items-center space-y-2">
-                          <div className="flex items-center">
-                            <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
-                            <span className="font-semibold">
-                              {product.features[key as keyof typeof product.features].rating}
-                            </span>
+                        {product.features[key] ? (
+                          <div className="flex flex-col items-center space-y-2">
+                            <div className="flex items-center">
+                              <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
+                              <span className="font-semibold">
+                                {product.features[key].rating}
+                              </span>
+                            </div>
+                            <Badge className={getSentimentColor(product.features[key].sentiment)}>
+                              {product.features[key].sentiment}
+                            </Badge>
                           </div>
-                          <Badge className={getSentimentColor(product.features[key as keyof typeof product.features].sentiment)}>
-                            {product.features[key as keyof typeof product.features].sentiment}
-                          </Badge>
-                        </div>
+                        ) : (
+                          <span className="text-gray-400">N/A</span>
+                        )}
                       </td>
                     ))}
                     <td className="px-6 py-4"></td>
